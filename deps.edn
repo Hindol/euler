@@ -1,0 +1,17 @@
+{:paths   ["src" "resources"]
+ :deps    {com.taoensso/tufte             {:mvn/version "2.1.0"}
+           org.clojure/clojure            {:mvn/version "1.10.1"}
+           org.clojure/math.combinatorics {:mvn/version "0.1.6"}
+           org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
+           org.clojure/tools.trace        {:mvn/version "0.7.10"}}
+ :aliases {:test    {:extra-paths ["test"]
+                     :extra-deps  {org.clojure/test.check {:mvn/version "0.10.0"}}}
+           :runner  {:extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner"
+                                                             :sha     "f7ef16dc3b8332b0d77bc0274578ad5270fbfedd"}}
+                     :main-opts  ["-m" "cognitect.test-runner"
+                                  "-d" "test"]}
+           :compile {:main-opts ["-e" "(compile,'com.github.hindol.euler)"]}
+           :uberjar {:extra-deps  {seancorfield/depstar {:mvn/version "0.3.4"}}
+                     :extra-paths ["classes"]
+                     :main-opts   ["-e" "(compile,'com.github.hindol.euler)"
+                                   "-m" "hf.depstar.uberjar" "euler.jar" "-m" "com.github.hindol.euler"]}}}
