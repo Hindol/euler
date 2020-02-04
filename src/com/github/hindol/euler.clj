@@ -1,18 +1,13 @@
 (ns com.github.hindol.euler
   (:require
+   [clojure.core.match :refer [match]]
    [clojure.math.combinatorics :as combo]
    [clojure.math.numeric-tower :as math]
-   [clojure.pprint :refer [pprint]]
    [clojure.set :as s]
    [clojure.string :as str]
-   [clojure.tools.trace :refer [deftrace trace-ns untrace-ns]]
+   [clojure.tools.trace :refer [deftrace trace-forms]]
    [com.github.hindol.euler.roman :as roman])
   (:gen-class))
-
-(set! *warn-on-reflection* true)
-(set! *unchecked-math* false)
-
-(map (partial apply min) [[2 4 3 5 1] [2.0 4.0 3.0 5.0 1.0]])
 
 (defn pentagonal-seq
   []
@@ -301,6 +296,12 @@
           (recur (quot x p) ps (conj fs p))
           (recur x (rest ps) fs))))))
 
+(defn factors-of
+  [x]
+  (let [prime-factors (prime-factorize x)]
+    (map #(inc (reduce * %))
+         (drop 1 (combo/subsets prime-factors)))))
+
 (defn totient
   [x]
   (long
@@ -327,66 +328,73 @@
        (letfn [(step [[^long x ^long y]] [y (+ x y)])]
          (iterate step [0 1]))))
 
-(def cached-fibonacci-seq
-  (fibonacci-seq))
+(defn rifle-shuffle
+  [deck]
+  {:pre [(-> deck count even?)]}
+  (let [half (quot (count deck) 2)]
+    (apply mapcat vector (split-at half deck))))
 
-(defn s
-  [^long x]
-  (dec
-   (long (reduce * (inc (rem x 9)) (repeat (quot x 9) 10)))))
+(set! *warn-on-reflection* :warn-on-boxed)
+(set! *unchecked-math* false)
 
-(defn rev-bits
-  "The bits of integer x, in reverse order."
-  [^long x]
-  (let [mask 2r1]
-    (loop [x    x
-           bits []]
-      (if (zero? x)
-        bits
-        (recur
-         (bit-shift-right x 1)
-         (conj bits (bit-and x mask)))))))
+(defn factorial-seq
+  []
+  (letfn [(step [[n f]]
+            [(inc n) (*' f (inc n))])]
+    (cons [0 1]
+          (iterate step [1 1]))))
 
-(defn expt
-  ^long [^long x ^long p]
-  {:post [(if (or (pos? x) (even? p))
-            (pos? %)
-            (neg? %))]}
-  (letfn [(mulmod
-            [x y]
-            (rem (* x y) 1000000007))]
-    (if (zero? p)
-      1
-      (reduce mulmod
-              (remove #{0}
-                      (map *
-                           (iterate #(mulmod % %) x)
-                           (rev-bits p)))))))
+(defn power-seq
+  ([x] (power-seq x 1))
+  ([x begin]
+   (map vector
+        (iterate inc begin)
+        (iterate #(* x %) (math/expt x begin))))
+  ([x begin end]
+   {:pre [(<= begin end)]}
+   (take (- end begin) (power-seq x begin))))
 
-(defn S
-  [^long x]
-  {:post [(<= 0 % 1000000006)]}
-  (let [mulmod (fn
-                 [x y]
-                 (rem (* x y) 1000000007))
-        n      (quot x 9)
-        r      (+ 2 (rem x 9))]
-    (rem
-     (/ (- (mulmod (expt 10 n)
-                   (+ 10 (mulmod r (dec r))))
-           (mulmod 2
-                   (+ r (mulmod 9 n) 4)))
-        2)
-     1000000007)))
+(defn int-log
+  "Returns how many times b can evenly divide x."
+  [x b]
+  (let [squares (reverse
+                 (map vector
+                      (iterate #(* 2 %) 1)
+                      (take-while #(zero? (rem x %))
+                                  (iterate #(*' % %) b))))]
+    (loop [[[i m] [j n] & squares] squares]
+      (if (nil? n)
+        i
+        (if (zero? (rem x (* m n)))
+          (recur (cons [(+ i j) (* m n)] squares))
+          (recur (cons [i m] squares)))))))
+
+(defn prime?
+  [x]
+  (not (some #(zero? (rem x %))
+             (take-while #(<= (* % %) x)
+                         (iterate inc 2)))))
+
+(defn kempner-seq
+  [p]
+  {:pre [prime? p]}
+  (letfn [(step
+           [[x k carry]]
+           (if (pos? carry)
+             [(* p x) k (dec carry)]
+             [(* p x) (+ p k) (dec (int-log (+ p k) p))]))]
+    (map pop (iterate step [p p 0]))))
+
+(defn solve-119
+  []
+  (take 10 (kempner-seq 7)))
 
 (defn -main
   [& _]
-  (let [addmod  (fn
-                  [x y]
-                  (rem (+ x y) 1000000007))
-        cnt     89
-        indices (take (inc cnt)
-                      (drop 2 (fibonacci-seq)))]
-    (map S indices)))
+  (let [base   29
+        raised (math/expt base 1000)]
+    (dotimes [_ 1000]
+      (int-log raised base))))
 
-(time (-main))
+(time
+ (-main))
