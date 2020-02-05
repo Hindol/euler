@@ -1,11 +1,10 @@
 (ns com.github.hindol.euler
   (:require
-   [clojure.core.match :refer [match]]
    [clojure.math.combinatorics :as combo]
    [clojure.math.numeric-tower :as math]
    [clojure.set :as s]
    [clojure.string :as str]
-   [clojure.tools.trace :refer [deftrace trace-forms]]
+   [com.github.hindol.euler.numeric :as numeric]
    [com.github.hindol.euler.roman :as roman])
   (:gen-class))
 
@@ -58,15 +57,6 @@
             (map count-partitions)
             (take-while #(pos? (rem % 1000000))))]
     (+ n (count (sequence xf (iterate inc n))))))
-
-(defn factorial
-  "Returns the factorial of n."
-  [n & {:keys [reduce-fn]
-        :or   {reduce-fn *'}}]
-  {:pre [(not (neg? n))]}
-  (if (zero? n)
-    1
-    (reduce reduce-fn (range 2 (inc n)))))
 
 (defn max-by
   [key-fn & args]
@@ -155,28 +145,9 @@
   (count
    (filter reversible-number? (range 100000000))))
 
-(defn sieve [^long n]
-  (let [primes (boolean-array (inc n) true)
-        sqrt-n (int (Math/ceil (Math/sqrt n)))]
-    (if (< n 2)
-      '()
-      (loop [p 3]
-        (if (< sqrt-n p)
-          (concat '(2)
-                  (filter #(aget primes %)
-                          (range 3 (inc n) 2)))
-          (do
-            (when (aget primes p)
-              (loop [i (* p p)]
-                (when (<= i n)
-                  (do
-                    (aset primes i false)
-                    (recur (+ i p))))))
-            (recur (+ p 2))))))))
-
 (defn remainder-seq
   []
-  (let [cached-sieve (sieve 1000000000)
+  (let [cached-sieve (numeric/sieve 1000000000)
         remainder    (fn remainder
                        [^long n]
                        (let [nth-prime (int (nth cached-sieve (dec n)))]
@@ -250,64 +221,12 @@
         (merge-ordered combined (first remaining))
         (rest remaining))))))
 
-(defn ^:private next-coprime-pairs
-  [[^long x ^long y]]
-  [[(- (+ x x) y) x]
-   [(+ x x y) x]
-   [(+ x y y) y]])
-
-(defn coprime-pair-seq
-  ([]
-   (coprime-pair-seq (sorted-set [2 1] [3 1])))
-  ([seed]
-   (lazy-seq
-    (let [pair     (first seed)
-          children (next-coprime-pairs pair)]
-      (cons pair
-            (coprime-pair-seq
-             (into (disj seed pair) children)))))))
-
-(def prime-seq
-  (concat
-   [2 3 5 7]
-   (lazy-seq
-    (let [primes-from (fn primes-from
-                        [n [f & r]]
-                        (if (some #(zero? (rem n %))
-                                  (take-while #(<= (* % %) n) prime-seq))
-                          (recur (+ n f) r)
-                          (lazy-seq (cons n (primes-from (+ n f) r)))))
-          wheel       (cycle [2 4 2 4 6 2 6 4 2 4 6 6 2 6  4  2
-                              6 4 6 8 4 2 4 2 4 8 6 4 6 2  4  6
-                              2 6 6 4 2 4 6 2 6 4 2 4 2 10 2 10])]
-      (primes-from 11 wheel)))))
-
-(defn prime-factorize
-  [x]
-  (loop [x  x
-         ps prime-seq
-         fs []]
-    (let [p (first ps)]
-      (if (> (* p p) x)
-        (if (< 1 x)
-          (conj fs x)
-          fs)
-        (if (zero? (rem x p))
-          (recur (quot x p) ps (conj fs p))
-          (recur x (rest ps) fs))))))
-
-(defn factors-of
-  [x]
-  (let [prime-factors (prime-factorize x)]
-    (map #(inc (reduce * %))
-         (drop 1 (combo/subsets prime-factors)))))
-
 (defn totient
   [x]
   (long
    (reduce *
            (cons x
-                 (for [p (dedupe (prime-factorize x))]
+                 (for [p (dedupe (numeric/prime-factorize x))]
                    (- 1 (/ 1 p)))))))
 
 (defn resilience
@@ -354,35 +273,14 @@
    {:pre [(<= begin end)]}
    (take (- end begin) (power-seq x begin))))
 
-(defn int-log
-  "Returns how many times b can evenly divide x."
-  [x b]
-  (let [squares (reverse
-                 (map vector
-                      (iterate #(* 2 %) 1)
-                      (take-while #(zero? (rem x %))
-                                  (iterate #(*' % %) b))))]
-    (loop [[[i m] [j n] & squares] squares]
-      (if (nil? n)
-        i
-        (if (zero? (rem x (* m n)))
-          (recur (cons [(+ i j) (* m n)] squares))
-          (recur (cons [i m] squares)))))))
-
-(defn prime?
-  [x]
-  (not (some #(zero? (rem x %))
-             (take-while #(<= (* % %) x)
-                         (iterate inc 2)))))
-
 (defn kempner-seq
   [p]
-  {:pre [prime? p]}
+  {:pre [numeric/prime? p]}
   (letfn [(step
            [[x k carry]]
            (if (pos? carry)
              [(* p x) k (dec carry)]
-             [(* p x) (+ p k) (dec (int-log (+ p k) p))]))]
+             [(* p x) (+ p k) (dec (numeric/int-log (+ p k) p))]))]
     (map pop (iterate step [p p 0]))))
 
 (defn solve-119
