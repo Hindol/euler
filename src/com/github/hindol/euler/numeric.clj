@@ -71,16 +71,16 @@
 
 (defn prime-factorize
   [x]
-  (loop [x  x
+  (loop [x  (long x)
          ps prime-seq
-         fs []]
-    (let [p (first ps)]
+         fs (list)]
+    (let [p (long (first ps))]
       (if (> (* p p) x)
         (if (< 1 x)
-          (conj fs x)
-          fs)
+          (cons x fs)
+          (into [] (reverse fs)))
         (if (zero? (rem x p))
-          (recur (quot x p) ps (conj fs p))
+          (recur (quot x p) ps (cons p fs))
           (recur x (rest ps) fs))))))
 
 (defn factors-of

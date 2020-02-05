@@ -3,7 +3,8 @@
            org.clojure/core.match         {:mvn/version "0.3.0"}
            org.clojure/math.combinatorics {:mvn/version "0.1.6"}
            org.clojure/math.numeric-tower {:mvn/version "0.0.4"}
-           org.clojure/tools.trace        {:mvn/version "0.7.10"}}
+           org.clojure/tools.trace        {:mvn/version "0.7.10"}
+           criterium                      {:mvn/version "0.4.5"}}
  :aliases {:test    {:extra-paths ["test"]
                      :extra-deps  {org.clojure/test.check {:mvn/version "0.10.0"}}}
            :runner  {:extra-deps {com.cognitect/test-runner {:git/url "https://github.com/cognitect-labs/test-runner"

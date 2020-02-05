@@ -1,3 +1,5 @@
+(set! *warn-on-reflection* :warn-on-boxed)
+
 (ns com.github.hindol.euler
   (:require
    [clojure.math.combinatorics :as combo]
@@ -5,8 +7,11 @@
    [clojure.set :as s]
    [clojure.string :as str]
    [com.github.hindol.euler.numeric :as numeric]
-   [com.github.hindol.euler.roman :as roman])
+   [com.github.hindol.euler.roman :as roman]
+   [criterium.core :as criterium])
   (:gen-class))
+
+(set! *warn-on-reflection* :warn-on-boxed)
 
 (defn pentagonal-seq
   []
@@ -253,9 +258,6 @@
   (let [half (quot (count deck) 2)]
     (apply mapcat vector (split-at half deck))))
 
-(set! *warn-on-reflection* :warn-on-boxed)
-(set! *unchecked-math* false)
-
 (defn factorial-seq
   []
   (letfn [(step [[n f]]
@@ -277,22 +279,65 @@
   [p]
   {:pre [numeric/prime? p]}
   (letfn [(step
-           [[x k carry]]
-           (if (pos? carry)
-             [(* p x) k (dec carry)]
-             [(* p x) (+ p k) (dec (numeric/int-log (+ p k) p))]))]
+            [[x k carry]]
+            (if (pos? carry)
+              [(* p x) k (dec carry)]
+              [(* p x) (+ p k) (dec (numeric/int-log (+ p k) p))]))]
     (map pop (iterate step [p p 0]))))
+
+(def ^:const limit
+  100000000)
+
+(def cache
+  (int-array (inc limit)))
+
+(defn init-cache
+  []
+  (doseq [prime (numeric/sieve limit)]
+    (doseq [[x k] (take-while #(<= (first %) limit)
+                              (kempner-seq prime))]
+      (aset-int cache x k))))
+
+(defn kempner
+  [x]
+  (let [groups (map #(apply math/expt %)
+                    (frequencies (numeric/prime-factorize x)))]
+    (if (= 1 (count groups))
+      (aget ^ints cache (first groups))
+      (reduce max (map kempner groups)))))
 
 (defn solve-119
   []
-  (take 10 (kempner-seq 7)))
+  (init-cache)
+  (reduce + (map kempner (range 2 10001))))
+
+(defn solve-429
+  []
+  (letfn [(add-prime
+            [m p]
+            (assoc m p (inc (get m p 0))))
+          (add
+            [m x]
+            (reduce add-prime
+                    m
+                    (numeric/prime-factorize x)))]
+    (loop [n 2
+           m {1 1}]
+      (if (> n 100)
+        m
+        (recur (inc n) (add m n))))))
+
+(defn log
+  [x b]
+  (/ (Math/log x)
+     (Math/log b)))
 
 (defn -main
   [& _]
-  (let [base   29
-        raised (math/expt base 1000)]
-    (dotimes [_ 1000]
-      (int-log raised base))))
+  (time
+   (let [end 100000]
+     (for [p (numeric/sieve end)]
+       (for [e (range (inc (int (log end p))))]
+         [p e])))))
 
-(time
- (-main))
+(-main)
