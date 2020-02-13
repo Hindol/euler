@@ -6,6 +6,7 @@
    [clojure.math.numeric-tower :as math]
    [clojure.set :as s]
    [clojure.string :as str]
+   [com.github.hindol.euler.collections :as coll]
    [com.github.hindol.euler.numeric :as numeric]
    [com.github.hindol.euler.roman :as roman]
    [criterium.core :as criterium])
@@ -334,10 +335,6 @@
 
 (defn -main
   [& _]
-  (time
-   (let [end 100000]
-     (for [p (numeric/sieve end)]
-       (for [e (range (inc (int (log end p))))]
-         [p e])))))
+  (count (disj (conj (coll/bag 1 2 2 3 3 3) 4 4 4 4) 4)))
 
 (-main)
