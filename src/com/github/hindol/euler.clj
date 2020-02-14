@@ -1,5 +1,3 @@
-(set! *warn-on-reflection* :warn-on-boxed)
-
 (ns com.github.hindol.euler
   (:require
    [clojure.math.combinatorics :as combo]
@@ -9,6 +7,7 @@
    [com.github.hindol.euler.collections :as coll]
    [com.github.hindol.euler.numeric :as numeric]
    [com.github.hindol.euler.roman :as roman]
+   [com.github.hindol.euler.sieves :as sieves]
    [criterium.core :as criterium])
   (:gen-class))
 
@@ -153,7 +152,7 @@
 
 (defn remainder-seq
   []
-  (let [cached-sieve (numeric/sieve 1000000000)
+  (let [cached-sieve (sieves/primes-till 1000000000)
         remainder    (fn remainder
                        [^long n]
                        (let [nth-prime (int (nth cached-sieve (dec n)))]
@@ -294,7 +293,7 @@
 
 (defn init-cache
   []
-  (doseq [prime (numeric/sieve limit)]
+  (doseq [prime (sieves/primes-till limit)]
     (doseq [[x k] (take-while #(<= (first %) limit)
                               (kempner-seq prime))]
       (aset-int cache x k))))

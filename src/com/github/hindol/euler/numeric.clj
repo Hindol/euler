@@ -32,25 +32,6 @@
                               2 6 6 4 2 4 6 2 6 4 2 4 2 10 2 10])]
       (primes-from 11 wheel)))))
 
-(defn sieve [^long n]
-  (let [primes (boolean-array (inc n) true)
-        sqrt-n (int (Math/ceil (Math/sqrt n)))]
-    (if (< n 2)
-      '()
-      (loop [p 3]
-        (if (< sqrt-n p)
-          (concat '(2)
-                  (filter #(aget primes %)
-                          (range 3 (inc n) 2)))
-          (do
-            (when (aget primes p)
-              (loop [i (* p p)]
-                (when (<= i n)
-                  (do
-                    (aset primes i false)
-                    (recur (+ i p))))))
-            (recur (+ p 2))))))))
-
 (defn coprime-pair-seq
   []
   (lazy-seq
