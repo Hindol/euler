@@ -152,7 +152,7 @@
 
 (defn remainder-seq
   []
-  (let [cached-sieve (sieves/primes-till 1000000000)
+  (let [cached-sieve (sieves/primes 1000000000)
         remainder    (fn remainder
                        [^long n]
                        (let [nth-prime (int (nth cached-sieve (dec n)))]
@@ -293,7 +293,7 @@
 
 (defn init-cache
   []
-  (doseq [prime (sieves/primes-till limit)]
+  (doseq [prime (sieves/primes limit)]
     (doseq [[x k] (take-while #(<= (first %) limit)
                               (kempner-seq prime))]
       (aset-int cache x k))))
