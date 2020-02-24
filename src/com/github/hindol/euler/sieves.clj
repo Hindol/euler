@@ -1,6 +1,4 @@
-(ns com.github.hindol.euler.sieves
-  (:require
-   [criterium.core :as criterium]))
+(ns com.github.hindol.euler.sieves)
 
 (set! *warn-on-reflection* :warn-on-boxed)
 
@@ -24,11 +22,29 @@
 
 (defn prime-factors
   [n]
-  (let [cache (object-array (repeat (inc n) []))]
-    (doseq [i      (range 2 (inc n))
-            :when  (empty? (aget cache i)) ; no factors till now => prime!
-            j      (iterate #(* i %) i)
-            :while (<= j n)
-            k      (range j (inc n) j)]
-      (aset cache k (conj (aget cache k) i)))
-    (map-indexed vector cache)))
+  (let [cache (int-array (range (inc n)))
+        n     (int n)]
+    ;; Even numbers
+    (loop [i (int 2)]
+      (when (<= i n)
+        (aset-int cache i 2)
+        (recur (+ i 2))))
+    ;; Odd numbers
+    (loop [i (int 3)]
+      (when (<= (* 3 i) n)
+        (when (= i (aget cache i))
+          (loop [j (* 3 i)]
+            (when (<= j n)
+              (when (= j (aget cache j))
+                (aset-int cache j i))
+              (recur (+ i i j)))))
+        (recur (+ i 2))))
+    (concat [[0 ()] [1 ()]]
+            (map (fn [n]
+                   (loop [x  n
+                          fx ()]
+                     (let [y (int (aget cache x))]
+                       (if (= x y)
+                         [n (conj fx y)]
+                         (recur (quot x y) (cons y fx))))))
+                 (range 2 (inc n))))))
