@@ -243,8 +243,12 @@
   (map #(Character/digit ^char % 10) (str x)))
 
 (defn digital-sum
-  [x]
-  (reduce + (digits x)))
+  ([x]
+   (loop [x (long x)
+          y 0]
+     (if (zero? x)
+       y
+       (recur (quot x 10) (+ y (rem x 10)))))))
 
 (defn fibonacci-seq
   []
@@ -342,7 +346,7 @@
         (zero? n)        1
         (and prev
              (> prev 1)) (recur (dec n) choices 1)
-        :else            (reduce + (for [i choices
+        :else            (reduce + (for [i     choices
                                          :when (<= i n)]
                                      (solve-114 (- n i) choices i))))))))
 
@@ -351,7 +355,7 @@
   []
   (letfn [(step [ss]
             (let [[[p [x e] :as f] & _] ss
-                  cnt             (+ (count ss) 2)] ; We are not tracking powers of 0 and 1
+                  cnt                   (+ (count ss) 2)] ; We are not tracking powers of 0 and 1
               (if (< (* x p) cnt)
                 (conj (disj ss f) [(* p x) [x (inc e)]])
                 (conj (disj ss f) [(* p x) [x (inc e)]] [cnt [cnt 1]]))))]
@@ -359,10 +363,7 @@
 
 (defn -main
   [& _]
-  (time
-   (nth (->> (powers)
-             (remove (fn [[p [_ e]]] (or (< p 10) (= e 1))))
-             (filter (fn [[p [x _]]] (= x (digital-sum p)))))
-        (dec 11))))
+  (criterium/quick-bench
+   (mapv digital-sum (range 1000000000))))
 
 (-main)
