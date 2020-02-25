@@ -1,4 +1,6 @@
-(ns com.github.hindol.euler.sieves)
+(ns com.github.hindol.euler.sieves
+  (:require
+   [criterium.core :as criterium]))
 
 (set! *warn-on-reflection* :warn-on-boxed)
 
@@ -6,7 +8,7 @@
   (let [primes (boolean-array (inc n) true)
         sqrt-n (int (Math/ceil (Math/sqrt n)))]
     (if (< n 2)
-      '()
+      ()
       (loop [p 3]
         (if (< sqrt-n p)
           (concat '(2)

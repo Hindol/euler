@@ -17,14 +17,14 @@
              (take-while #(<= (* % %) x)
                          (iterate inc 2)))))
 
-(def prime-seq
+(def primes
   (concat
    [2 3 5 7]
    (lazy-seq
     (let [primes-from (fn primes-from
                         [n [f & r]]
                         (if (some #(zero? (rem n %))
-                                  (take-while #(<= (* % %) n) prime-seq))
+                                  (take-while #(<= (* % %) n) primes))
                           (recur (+ n f) r)
                           (lazy-seq (cons n (primes-from (+ n f) r)))))
           wheel       (cycle [2 4 2 4 6 2 6 4 2 4 6 6 2 6  4  2
@@ -32,7 +32,7 @@
                               2 6 6 4 2 4 6 2 6 4 2 4 2 10 2 10])]
       (primes-from 11 wheel)))))
 
-(defn coprime-pair-seq
+(defn coprime-pairs
   []
   (lazy-seq
    (letfn [(next-pairs
@@ -53,7 +53,7 @@
 (defn prime-factorize
   [x]
   (loop [x  (long x)
-         ps prime-seq
+         ps primes
          fs (list)]
     (let [p (long (first ps))]
       (if (> (* p p) x)
@@ -73,14 +73,15 @@
 (defn int-log
   "Returns how many times b can evenly divide x."
   [x b]
-  (let [squares (reverse
-                 (map vector
-                      (iterate #(* 2 %) 1)
-                      (take-while #(zero? (rem x %))
-                                  (iterate #(*' % %) b))))]
-    (loop [[[i m] [j n] & squares] squares]
-      (if (nil? n)
-        i
-        (if (zero? (rem x (* m n)))
-          (recur (cons [(+ i j) (* m n)] squares))
-          (recur (cons [i m] squares)))))))
+  (let [square    #(*' % %)
+        exponents (iterate #(* 2 %) 1)
+        powers    (take-while #(zero? (rem x %))
+                              (iterate square b))]
+    (if (empty? powers)
+      0
+      (loop [[[i m] [j n] & r] (reverse (map vector exponents powers))]
+        (if (nil? n)
+          i
+          (if (zero? (rem x (* m n)))
+            (recur (cons [(+ i j) (* m n)] r))
+            (recur (cons [i m] r))))))))

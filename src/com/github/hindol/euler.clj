@@ -332,8 +332,37 @@
   (/ (Math/log x)
      (Math/log b)))
 
+(def solve-114
+  (memoize
+   (fn
+     ([m n] (+ (solve-114 n (cons 1 (range m (inc n))) nil)))
+     ([n choices prev]
+      (cond
+        (neg? n)         0
+        (zero? n)        1
+        (and prev
+             (> prev 1)) (recur (dec n) choices 1)
+        :else            (reduce + (for [i choices
+                                         :when (<= i n)]
+                                     (solve-114 (- n i) choices i))))))))
+
+(defn powers
+  "Lazy sequence of all powers."
+  []
+  (letfn [(step [ss]
+            (let [[[p [x e] :as f] & _] ss
+                  cnt             (+ (count ss) 2)] ; We are not tracking powers of 0 and 1
+              (if (< (* x p) cnt)
+                (conj (disj ss f) [(* p x) [x (inc e)]])
+                (conj (disj ss f) [(* p x) [x (inc e)]] [cnt [cnt 1]]))))]
+    (map first (iterate step (sorted-set [2 [2 1]] [3 [3 1]])))))
+
 (defn -main
   [& _]
-  (count (disj (conj (coll/bag 1 2 2 3 3 3) 4 4 4 4) 4)))
+  (time
+   (nth (->> (powers)
+             (remove (fn [[p [_ e]]] (or (< p 10) (= e 1))))
+             (filter (fn [[p [x _]]] (= x (digital-sum p)))))
+        (dec 11))))
 
 (-main)
