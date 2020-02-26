@@ -73,6 +73,7 @@
 (defn int-log
   "Returns how many times b can evenly divide x."
   [x b]
+  {:pre [(> b 1)]}
   (let [square    #(*' % %)
         exponents (iterate #(* 2 %) 1)
         powers    (take-while #(zero? (rem x %))

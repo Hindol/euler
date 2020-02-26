@@ -4,6 +4,7 @@
    [clojure.math.numeric-tower :as math]
    [clojure.set :as s]
    [clojure.string :as str]
+   [clojure.tools.trace :as trace]
    [com.github.hindol.euler.collections :as coll]
    [com.github.hindol.euler.numeric :as numeric]
    [com.github.hindol.euler.roman :as roman]
@@ -363,7 +364,11 @@
 
 (defn -main
   [& _]
-  (criterium/quick-bench
-   (mapv digital-sum (range 1000000000))))
+  (letfn [(keep? [x]
+            (let [s (digital-sum x)]
+              (= x (math/expt s (numeric/int-log x s)))))]
+    (take 30 (filter #(and (> (digital-sum %) 1)
+                           (keep? %))
+                     (iterate inc 10)))))
 
 (-main)
