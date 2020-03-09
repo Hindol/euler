@@ -4,12 +4,15 @@
 
 (defn factorial
   "Returns the factorial of n."
-  [n & {:keys [reduce-fn]
-        :or   {reduce-fn *'}}]
+  [n]
   {:pre [(not (neg? n))]}
-  (if (zero? n)
-    1
-    (reduce reduce-fn (range 2 (inc n)))))
+  (cond
+    (#{0 1} n) 1
+    :else      (loop [n (long n)
+                      f 1]
+                 (if (= n 2)
+                   (*' 2 f)
+                   (recur (dec n) (*' f n))))))
 
 (defn prime?
   [x]
@@ -64,11 +67,22 @@
           (recur (quot x p) ps (cons p fs))
           (recur x (rest ps) fs))))))
 
+(defn count-divisors
+  [x]
+  (reduce *' (->> (frequencies
+                   (prime-factorize x))
+                  (map #(-> % second inc)))))
+
 (defn factors-of
   [x]
   (let [prime-factors (prime-factorize x)]
     (map #(inc (reduce * %))
          (drop 1 (combo/subsets prime-factors)))))
+
+(defn log
+  [x b]
+  (/ (Math/log x)
+     (Math/log b)))
 
 (defn int-log
   "Returns how many times b can evenly divide x."

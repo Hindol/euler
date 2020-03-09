@@ -2,10 +2,13 @@
   (:require
    [clojure.math.combinatorics :as combo]
    [clojure.math.numeric-tower :as math]
+   [clojure.java.io :as io]
+   [clojure.pprint :as pp]
    [clojure.set :as s]
    [clojure.string :as str]
    [clojure.tools.trace :as trace]
    [com.github.hindol.euler.collections :as coll]
+   [com.github.hindol.euler.modular :as modular]
    [com.github.hindol.euler.numeric :as numeric]
    [com.github.hindol.euler.roman :as roman]
    [com.github.hindol.euler.sieves :as sieves]
@@ -24,21 +27,6 @@
 (def cached-pentagonal-seq
   (pentagonal-seq))
 
-;; https://projecteuler.net/problem=78
-;;
-;; *
-;;
-;; **
-;; * *
-;;
-;; ***
-;; ** *
-;; * * *
-;;
-;; ****
-;; *** *
-;; ** **
-;; ** * *
 (def count-partitions
   "Given n coins, how many distinct partitions are possible?"
   (memoize
@@ -64,14 +52,6 @@
             (take-while #(pos? (rem % 1000000))))]
     (+ n (count (sequence xf (iterate inc n))))))
 
-(defn max-by
-  [key-fn & args]
-  (last (sort-by key-fn args)))
-
-(defn ordered?
-  [xs]
-  (or (empty? xs) (apply <= xs)))
-
 (defn gen-targets
   [s]
   {:pre [(and (sorted? s) (set? s))]}
@@ -88,23 +68,6 @@
                (not (zero? y)) (conj (/ x y))
                (not (zero? x)) (conj (/ y x)))))))
 
-(defn count-consecutive
-  [coll]
-  (->> coll
-       (partition 2 1)
-       (map #(apply - %))
-       (take-while #{-1})
-       count
-       inc))
-
-(defn solve-93
-  []
-  (apply max-by second
-         (for [p (combo/combinations (range 1 10) 4)]
-           [p (->> (gen-targets (into (sorted-set) p))
-                   (filter #(and (pos? %) (integer? %)))
-                   (count-consecutive))])))
-
 (defn prob-half-seq
   []
   (let [step (fn [[blue total]]
@@ -112,20 +75,13 @@
                 (+ (* 4 blue) (* 3 total) (- 3))])]
     (iterate step [15 21])))
 
-(defn solve-100
-  []
-  (first
-   (drop-while #(<= (second %) 1000000000000)
-               (prob-half-seq))))
-
 (defn reverse-digits
-  [n]
-  (let [n (int n)]
-    (loop [fwd  (quot n 10)
-           bkwd (rem n 10)]
-      (if (zero? fwd)
-        bkwd
-        (recur (quot fwd 10) (+ (* 10 bkwd) (rem fwd 10)))))))
+  [^long n]
+  (loop [fwd  (quot n 10)
+         bkwd (rem n 10)]
+    (if (zero? fwd)
+      bkwd
+      (recur (quot fwd 10) (+ (* 10 bkwd) (rem fwd 10))))))
 
 (defn digit
   [ch]
@@ -145,27 +101,6 @@
       :else           (every? #{\1 \3 \5 \7 \9}
                               (str
                                (+ (int n) (int (reverse-digits n))))))))
-
-(defn solve-145
-  []
-  (count
-   (filter reversible-number? (range 100000000))))
-
-(defn remainder-seq
-  []
-  (let [cached-sieve (sieves/primes 1000000000)
-        remainder    (fn remainder
-                       [^long n]
-                       (let [nth-prime (int (nth cached-sieve (dec n)))]
-                         (int (rem (+ ^long (math/expt (dec nth-prime) n)
-                                      ^long (math/expt (inc nth-prime) n))
-                                   (* nth-prime nth-prime)))))]
-    (map (juxt identity remainder) (iterate (partial + 2) 7037))))
-
-(defn solve-123
-  []
-  (first
-   (filter #(> (second %) 10000000000) (remainder-seq))))
 
 (defn solve-89
   []
@@ -263,23 +198,6 @@
   (let [half (quot (count deck) 2)]
     (apply mapcat vector (split-at half deck))))
 
-(defn factorial-seq
-  []
-  (letfn [(step [[n f]]
-            [(inc n) (*' f (inc n))])]
-    (cons [0 1]
-          (iterate step [1 1]))))
-
-(defn power-seq
-  ([x] (power-seq x 1))
-  ([x begin]
-   (map vector
-        (iterate inc begin)
-        (iterate #(* x %) (math/expt x begin))))
-  ([x begin end]
-   {:pre [(<= begin end)]}
-   (take (- end begin) (power-seq x begin))))
-
 (defn kempner-seq
   [p]
   {:pre [numeric/prime? p]}
@@ -289,53 +207,6 @@
               [(* p x) k (dec carry)]
               [(* p x) (+ p k) (dec (numeric/int-log (+ p k) p))]))]
     (map pop (iterate step [p p 0]))))
-
-(def ^:const limit
-  100000000)
-
-(def cache
-  (int-array (inc limit)))
-
-(defn init-cache
-  []
-  (doseq [prime (sieves/primes limit)]
-    (doseq [[x k] (take-while #(<= (first %) limit)
-                              (kempner-seq prime))]
-      (aset-int cache x k))))
-
-(defn kempner
-  [x]
-  (let [groups (map #(apply math/expt %)
-                    (frequencies (numeric/prime-factorize x)))]
-    (if (= 1 (count groups))
-      (aget ^ints cache (first groups))
-      (reduce max (map kempner groups)))))
-
-(defn solve-119
-  []
-  (init-cache)
-  (reduce + (map kempner (range 2 10001))))
-
-(defn solve-429
-  []
-  (letfn [(add-prime
-            [m p]
-            (assoc m p (inc (get m p 0))))
-          (add
-            [m x]
-            (reduce add-prime
-                    m
-                    (numeric/prime-factorize x)))]
-    (loop [n 2
-           m {1 1}]
-      (if (> n 100)
-        m
-        (recur (inc n) (add m n))))))
-
-(defn log
-  [x b]
-  (/ (Math/log x)
-     (Math/log b)))
 
 (def solve-114
   (memoize
@@ -351,24 +222,23 @@
                                          :when (<= i n)]
                                      (solve-114 (- n i) choices i))))))))
 
-(defn powers
-  "Lazy sequence of all powers."
-  []
-  (letfn [(step [ss]
-            (let [[[p [x e] :as f] & _] ss
-                  cnt                   (+ (count ss) 2)] ; We are not tracking powers of 0 and 1
-              (if (< (* x p) cnt)
-                (conj (disj ss f) [(* p x) [x (inc e)]])
-                (conj (disj ss f) [(* p x) [x (inc e)]] [cnt [cnt 1]]))))]
-    (map first (iterate step (sorted-set [2 [2 1]] [3 [3 1]])))))
+(defn solve-110
+  [])
 
 (defn -main
   [& _]
-  (letfn [(keep? [x]
-            (let [s (digital-sum x)]
-              (= x (math/expt s (numeric/int-log x s)))))]
-    (take 30 (filter #(and (> (digital-sum %) 1)
-                           (keep? %))
-                     (iterate inc 10)))))
+  (with-open [reader (io/reader "resources/p107_network.txt")]
+    (loop [edges   (read-edges reader)
+           seen    #{}
+           optimum #{}]
+      (if-let [edge (first edges)]
+        (if (every? #(contains? seen %) (:vertices edge))
+          (recur (disj edges edge) seen optimum)
+          (recur (disj edges edge)
+                 (into seen (:vertices edge))
+                 (conj optimum edge)))
+        (reduce + (map :weight optimum))
+        #_(into (sorted-set)
+                (mapcat :vertices optimum))))))
 
 (-main)
